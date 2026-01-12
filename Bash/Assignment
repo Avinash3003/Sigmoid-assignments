@@ -1,0 +1,40 @@
+#!/bin/bash
+
+read -p "Component_name: [INGESTOR/JOINER/WRANGLER/VALIDATOR] " cmp_name
+read -p "Scale: [MID/HIGH/LOW] " scale
+read -p "View: [AUCTION/BID] " view
+read -p "Count: [Single digit number] " count
+
+flag=0
+[[ "$cmp_name" =~ ^(INGESTOR|JOINER|WRANGLER|VALIDATOR)$ ]] && ((flag++))
+[[ "$scale" =~ ^(MID|HIGH|LOW)$ ]] && ((flag++))
+[[ "$view" =~ ^(AUCTION|BID)$ ]] && ((flag++))
+[[ "$count" =~ ^[0-9]$ ]] && ((flag++))
+
+if [[ $flag -ne 4 ]]; then
+    echo "Error: Invalid Inputs. Please follow the naming conventions."
+    exit 1
+fi
+
+path="$(pwd)/sig.conf"
+touch "$path" # Create the file if it doesn't exist
+org="$cmp_name/$scale/$view/$count"
+cmp="$cmp_name/$scale/$view/"
+
+cnt=$(grep -c "^${cmp}" "$path" | tr -d '[:space:]')
+
+if (( cnt == 0 )); then
+    echo "No existing entry found. Adding new entry..."
+    echo "$org" >> "$path"
+elif (( cnt == 1 )); then
+    echo "Existing entry found. Updating count..."
+    sed -i "s|^${cmp}.*|${org}|" "$path"
+else
+    echo "Error: Something fishy. Found $cnt entries matching $cmp"
+    exit 1
+fi
+
+echo "----------------------------------------"
+echo "Final state of $path:"
+cat "$path"
+
